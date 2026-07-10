@@ -80,7 +80,7 @@ function LoginForm() {
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">로그인</h1>
-        <p className="text-sm text-[var(--color-text-secondary)] mt-1">Signal League에 오신 것을 환영합니다</p>
+        <p className="text-sm text-[var(--color-text-secondary)] mt-1">오신 것을 환영합니다. Signal League입니다</p>
       </div>
 
       {urlError && (
