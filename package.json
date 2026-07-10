@@ -1,0 +1,56 @@
+{
+  "name": "@workspace/signal-league",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port $PORT --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --port $PORT --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:seed": "tsx prisma/seed.ts",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.10.0",
+    "@prisma/client": "^6.11.0",
+    "bcryptjs": "^3.0.2",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.511.0",
+    "next": "15.5.18",
+    "next-auth": "^5.0.0-beta.28",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-hook-form": "^7.55.0",
+    "recharts": "^2.15.4",
+    "resend": "^6.12.3",
+    "sonner": "^2.0.7",
+    "svix": "^1.94.0",
+    "zod": "^3.25.76",
+    "lodash": "4.17.15"
+  },
+  "devDependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@tailwindcss/postcss": "^4.1.14",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.15.30",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "postcss": "^8.5.6",
+    "prisma": "^6.11.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma"
+    ]
+  }
+}

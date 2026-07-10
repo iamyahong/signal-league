@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Signal League Design Tokens */
+
+  /* Typography */
+  --font-family-primary: 'Inter', 'Inter Fallback', sans-serif;
+
+  /* Surface colors */
+  --color-surface-base: #ffffff;
+  --color-surface-muted: #f7f8f9;
+  --color-surface-elevated: #ffffff;
+  --color-surface-inverse: #000000;
+
+  /* Text colors */
+  --color-text-primary: #0e0f11;
+  --color-text-secondary: #77808d;
+  --color-text-tertiary: #a4abb5;
+  --color-text-inverse: #ffffff;
+
+  /* Border colors */
+  --color-border-default: #e6e8ea;
+  --color-border-strong: #c5c9ce;
+  --color-border-focus: rgba(18, 18, 27, 0.5);
+
+  /* Accent colors */
+  --color-accent-primary: #2d9cdb;
+  --color-accent-success: #27ae60;
+  --color-accent-danger: #eb5757;
+  --color-accent-warning: #f2994a;
+
+  /* Spacing */
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Motion */
+  --motion-duration-instant: 150ms;
+  --motion-duration-short: 200ms;
+  --motion-duration-medium: 300ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Map tokens to Tailwind utilities */
+  --color-background: #ffffff;
+  --color-foreground: #0e0f11;
+  --color-muted: #f7f8f9;
+  --color-muted-foreground: #77808d;
+  --color-border: #e6e8ea;
+  --color-primary: #2d9cdb;
+  --color-primary-foreground: #ffffff;
+  --color-success: #27ae60;
+  --color-danger: #eb5757;
+  --color-warning: #f2994a;
+}
+
+:root {
+  --font-family-primary: 'Inter', 'Inter Fallback', sans-serif;
+  --color-text-primary: #0e0f11;
+  --color-text-secondary: #77808d;
+  --color-text-tertiary: #a4abb5;
+  --color-text-inverse: #ffffff;
+  --color-surface-base: #ffffff;
+  --color-surface-muted: #f7f8f9;
+  --color-surface-elevated: #ffffff;
+  --color-surface-inverse: #000000;
+  --color-border-default: #e6e8ea;
+  --color-border-strong: #c5c9ce;
+  --color-border-focus: rgba(18, 18, 27, 0.5);
+  --color-accent-primary: #2d9cdb;
+  --color-accent-success: #27ae60;
+  --color-accent-danger: #eb5757;
+  --color-accent-warning: #f2994a;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 16px;
+  --font-size-2xl: 18px;
+  --font-size-3xl: 20px;
+  --font-size-4xl: 24px;
+  --font-size-5xl: 32px;
+  --font-size-6xl: 40px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.5;
+  --line-height-tight: 1.2;
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --motion-duration-instant: 150ms;
+  --motion-duration-short: 200ms;
+  --motion-duration-medium: 300ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+html,
+body {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  background: var(--color-surface-base);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    padding: 0;
+    margin: 0;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

@@ -1,0 +1,725 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  PENDING_BETA
+  BETA_ACTIVE
+  ACTIVE
+  CANCELED
+  EXPIRED
+  SUSPENDED
+  DELETED
+}
+
+enum PlanCode {
+  BASIC
+  STANDARD
+  PRO
+}
+
+enum SubscriptionStatus {
+  NONE
+  PENDING_BETA
+  BETA_ACTIVE
+  ACTIVE
+  PAYMENT_FAILED
+  CANCELED
+  EXPIRED
+  SUSPENDED
+}
+
+enum QuestionStatus {
+  DRAFT
+  PENDING_REVIEW
+  OPEN
+  CLOSED
+  RESOLVED
+  VOIDED
+  REJECTED
+  HIDDEN
+}
+
+enum ParticipationStatus {
+  ACTIVE
+  WON
+  LOST
+  REFUNDED
+  CANCELED
+}
+
+enum ScoreLedgerType {
+  PLAN_GRANT
+  QUESTION_CREATE_COST
+  QUESTION_CREATE_REFUND
+  PREDICTION_ALLOCATE
+  PREDICTION_WIN
+  PREDICTION_LOSE
+  QUESTION_VOID_REFUND
+  REFERRAL_BONUS
+  ADMIN_ADJUST_ADD
+  ADMIN_ADJUST_SUBTRACT
+  SYSTEM_CORRECTION
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+  ACCEPTED
+  NEEDS_MORE_INFO
+}
+
+enum DisputeStatus {
+  PENDING
+  REVIEWING
+  ACCEPTED
+  REJECTED
+  NEEDS_MORE_INFO
+}
+
+enum UserRoleType {
+  SUPER_ADMIN
+  OPERATOR
+  READ_ONLY
+}
+
+enum ReferralEventType {
+  SIGNUP
+  FIRST_PARTICIPATION
+  BONUS_GRANTED
+}
+
+enum ReportTargetType {
+  QUESTION
+  COMMENT
+  USER
+}
+
+enum CommentType {
+  GROUND
+  COUNTER
+  QUESTION
+  INFO
+  OTHER
+}
+
+model User {
+  id                String       @id @default(uuid())
+  email             String       @unique
+  emailVerified     DateTime?
+  nickname          String       @unique
+  passwordHash      String?
+  status            UserStatus   @default(PENDING_BETA)
+  desiredPlanCode   PlanCode     @default(BASIC)
+  referralCode      String       @unique
+  referredByUserId  String?
+  suspensionReason        String?
+  deletionReason          String?
+  lastNicknameChangedAt   DateTime?
+  firstParticipationAt    DateTime?
+  referralBonusGrantedAt  DateTime?
+  emailVerifiedAt   DateTime?
+  emailBlocked         Boolean   @default(false)
+  emailBlockedAt       DateTime?
+  emailBlockedReason   String?   @db.VarChar(50)
+  softBounceCount      Int       @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+
+  profile           UserProfile?
+  roles             UserRole[]
+  subscription      Subscription?
+  scoreLedgers      ScoreLedger[]
+  questions         PredictionQuestion[]
+  participations    PredictionParticipation[]
+  comments          Comment[]
+  reports           Report[]
+  disputes          Dispute[]
+  rankingStats      UserRankingStat[]
+  referredBy        User?        @relation("Referrals", fields: [referredByUserId], references: [id])
+  referrals         User[]       @relation("Referrals")
+  referralsMade     Referral[]   @relation("ReferralFrom")
+  referralsReceived Referral[]   @relation("ReferralTo")
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  accounts          Account[]
+  sessions          Session[]
+  emailLogs         EmailLog[]
+  broadcastJobs     BroadcastJob[]
+
+  @@index([emailBlocked, emailBlockedAt])
+  @@map("users")
+}
+
+model UserProfile {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  bio                  String?
+  avatarUrl            String?
+  favoriteCategories      String[]
+  joinPurpose             String?
+  notificationPreferences Json?
+  totalScore              Int      @default(0)
+  availableScore          Int      @default(0)
+  totalPredictions     Int      @default(0)
+  correctPredictions   Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  deletedAt            DateTime?
+
+  user                 User     @relation(fields: [userId], references: [id])
+
+  @@map("user_profiles")
+}
+
+model UserRole {
+  id        String       @id @default(uuid())
+  userId    String
+  role      UserRoleType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@map("user_roles")
+}
+
+model Plan {
+  id              String     @id @default(uuid())
+  code            PlanCode   @unique
+  name            String
+  priceKrw        Int
+  monthlyScore    Int
+  description     String?
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  subscriptions   Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id              String             @id @default(uuid())
+  userId          String             @unique
+  planId          String
+  status          SubscriptionStatus @default(PENDING_BETA)
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  betaApprovedAt  DateTime?
+  betaApprovedBy  String?
+  canceledAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+
+  user            User               @relation(fields: [userId], references: [id])
+  plan            Plan               @relation(fields: [planId], references: [id])
+  payments        Payment[]
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  subscriptionId  String
+  amountKrw       Int
+  pgProvider      String?
+  pgTransactionId String?
+  status          String   @default("pending")
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@map("payments")
+}
+
+model ScoreLedger {
+  id              String          @id @default(uuid())
+  userId          String
+  type            ScoreLedgerType
+  amount          Int
+  balanceAfter    Int
+  description     String?
+  referenceId     String?
+  referenceType   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  user            User            @relation(fields: [userId], references: [id])
+
+  @@map("score_ledgers")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  questions   PredictionQuestion[]
+
+  @@map("categories")
+}
+
+model PredictionQuestion {
+  id                   String         @id @default(uuid())
+  authorId             String
+  categoryId           String
+  title                String
+  description          String?
+  sourceUrl            String?
+  sourceUrls           Json?
+  resolutionCriteria   String?
+  status               QuestionStatus @default(DRAFT)
+  closesAt             DateTime?
+  resolvesAt           DateTime?
+  resolvedAt           DateTime?
+  resolvedOptionId     String?
+  totalParticipants    Int            @default(0)
+  totalAllocated       Int            @default(0)
+  creatorCost          Int            @default(0)
+  rejectionReason      String?
+  userVisibleRejectionMessage String?
+  approvedAt           DateTime?
+  approvedByUserId     String?
+  rejectedAt           DateTime?
+  rejectedByUserId     String?
+  hiddenAt             DateTime?
+  hiddenByUserId       String?
+  hiddenReason         String?
+  forceClosedAt        DateTime?
+  forceClosedByUserId  String?
+  forceCloseReason     String?
+  voidReason           String?
+  resolvedByUserId     String?
+  resolutionEvidenceUrl String?
+  resolutionMemo       String?
+  voidedAt             DateTime?
+  voidedByUserId       String?
+  creatorCostRefunded  Boolean?
+  lastAutoClosedAt     DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  deletedAt            DateTime?
+
+  author               User           @relation(fields: [authorId], references: [id])
+  category             Category       @relation(fields: [categoryId], references: [id])
+  options              PredictionOption[]
+  participations       PredictionParticipation[]
+  result               PredictionResult?
+  comments             Comment[]
+  disputes             Dispute[]
+  rankingSnapshots     RankingSnapshot[]
+
+  @@map("prediction_questions")
+}
+
+model PredictionOption {
+  id             String   @id @default(uuid())
+  questionId     String
+  label          String
+  description    String?
+  totalAllocated   Int      @default(0)
+  participantCount Int      @default(0)
+  isResolved       Boolean  @default(false)
+  sortOrder        Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  question       PredictionQuestion    @relation(fields: [questionId], references: [id])
+  participations PredictionParticipation[]
+
+  @@map("prediction_options")
+}
+
+model PredictionParticipation {
+  id           String              @id @default(uuid())
+  questionId   String
+  userId       String
+  optionId     String
+  allocatedScore Int
+  memo         String?
+  status       ParticipationStatus @default(ACTIVE)
+  earnedScore  Int?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?
+
+  question     PredictionQuestion  @relation(fields: [questionId], references: [id])
+  user         User                @relation(fields: [userId], references: [id])
+  option       PredictionOption    @relation(fields: [optionId], references: [id])
+
+  @@unique([questionId, userId])
+  @@map("prediction_participations")
+}
+
+model PredictionResult {
+  id              String   @id @default(uuid())
+  questionId      String   @unique
+  winningOptionId String
+  resolvedBy      String
+  resolvedAt      DateTime
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  question        PredictionQuestion @relation(fields: [questionId], references: [id])
+
+  @@map("prediction_results")
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  questionId String
+  userId     String
+  parentId   String?
+  content      String
+  commentType  CommentType @default(OTHER)
+  isHidden                  Boolean  @default(false)
+  deletedByAdminId          String?
+  deletionReason            String?
+  userVisibleDeletionMessage String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  question   PredictionQuestion @relation(fields: [questionId], references: [id])
+  user       User               @relation(fields: [userId], references: [id])
+  parent     Comment?           @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[]          @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model Report {
+  id           String           @id @default(uuid())
+  reporterId   String
+  targetType   ReportTargetType
+  targetId     String
+  reason       String
+  status       ReportStatus     @default(PENDING)
+  reviewedBy                String?
+  reviewedAt                DateTime?
+  reviewNote                String?
+  processedAt               DateTime?
+  processedByAdminId        String?
+  processingReason          String?
+  processingResolution      String?
+  notifyReporter            Boolean  @default(false)
+  notifyReportedUser        Boolean  @default(false)
+  userVisibleResolutionMessage String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  deletedAt    DateTime?
+
+  reporter     User             @relation(fields: [reporterId], references: [id])
+
+  @@map("reports")
+}
+
+model Dispute {
+  id          String        @id @default(uuid())
+  questionId  String
+  userId      String
+  reason      String
+  evidence    String?
+  status      DisputeStatus @default(PENDING)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNote  String?
+  processedAt                  DateTime?
+  processedByUserId            String?
+  processingReason             String?
+  userVisibleResolutionMessage String?
+  resultAction                 String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  question    PredictionQuestion @relation(fields: [questionId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
+
+  @@unique([questionId, userId])
+  @@map("disputes")
+}
+
+model RankingSnapshot {
+  id              String   @id @default(uuid())
+  questionId      String?
+  periodType      String
+  periodKey       String
+  categoryId      String?
+  categoryCode    String?
+  userId          String
+  rank            Int
+  score           Int
+  totalPredictions Int
+  correctPredictions Int
+  accuracy        Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  question        PredictionQuestion? @relation(fields: [questionId], references: [id])
+
+  @@map("ranking_snapshots")
+}
+
+model UserRankingStat {
+  id                 String   @id @default(uuid())
+  userId             String
+  periodType         String
+  periodKey          String
+  weeklyScore        Int      @default(0)
+  monthlyScore       Int      @default(0)
+  totalScore         Int      @default(0)
+  weeklyRank         Int?
+  monthlyRank        Int?
+  totalRank          Int?
+  accuracy           Float    @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  user               User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, periodType, periodKey])
+  @@map("user_ranking_stats")
+}
+
+model Referral {
+  id             String   @id @default(uuid())
+  fromUserId     String
+  toUserId       String
+  bonusGiven     Boolean  @default(false)
+  bonusAmount    Int?
+  signupIp       String?
+  signupUserAgent String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  fromUser       User     @relation("ReferralFrom", fields: [fromUserId], references: [id])
+  toUser         User     @relation("ReferralTo", fields: [toUserId], references: [id])
+
+  @@unique([fromUserId, toUserId])
+  @@map("referrals")
+}
+
+model ReferralEvent {
+  id             String            @id @default(uuid())
+  referrerUserId String
+  referredUserId String
+  eventType      ReferralEventType
+  bonusAmount    Int?
+  signupIp       String?
+  signupUserAgent String?
+  createdAt      DateTime          @default(now())
+
+  @@map("referral_events")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  data      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  actor      User?    @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model ServiceSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@map("service_settings")
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model EmailLog {
+  id           String    @id @default(cuid())
+  type         String
+  toEmail      String
+  userId       String?
+  subject      String
+  status       String
+  resendId     String?
+  errorMsg     String?
+  meta         Json?
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  bouncedAt    DateTime?
+  complainedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  user         User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([resendId])
+  @@map("email_logs")
+}
+
+model EmailVerification {
+  id        String    @id @default(cuid())
+  userId    String
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@map("email_verifications")
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@map("password_resets")
+}
+
+enum BroadcastJobStatus {
+  SCHEDULED
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model BroadcastJob {
+  id                String             @id @default(uuid())
+  createdByUserId   String
+  status            BroadcastJobStatus @default(QUEUED)
+  targetType        String
+  targetPlanCodes   Json?
+  targetUserIds     Json?
+  channelInapp      Boolean            @default(false)
+  channelEmail      Boolean            @default(false)
+  title             String
+  content           String
+  linkUrl           String?
+  emailSubject      String?
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  totalCount        Int                @default(0)
+  inappSentCount    Int                @default(0)
+  emailSentCount    Int                @default(0)
+  emailBlockedCount Int                @default(0)
+  errorMessage      String?
+  meta              Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  createdByUser     User               @relation(fields: [createdByUserId], references: [id])
+
+  @@index([status, createdAt])
+  @@map("broadcast_jobs")
+}

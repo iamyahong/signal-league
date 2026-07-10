@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Signal League"
+version = "1.0.0"
+id = "artifacts/signal-league"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26139
+
+[services.development]
+run = "pnpm --filter @workspace/signal-league run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/signal-league", "run", "build" ]
+publicDir = "artifacts/signal-league/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26139"
+BASE_PATH = "/"
