@@ -1,36 +1,16 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { UserStatus } from "@prisma/client";
-
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const googleEnabled = Boolean(googleClientId && googleClientSecret);
+import authConfig from "@/lib/auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustHost: true,
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
-  basePath: "/auth",
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
   providers: [
-    ...(googleEnabled
-      ? [
-          GoogleProvider({
-            clientId: googleClientId!,
-            clientSecret: googleClientSecret!,
-            allowDangerousEmailAccountLinking: true,
-          }),
-        ]
-      : []),
+    ...authConfig.providers,
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -66,6 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         const email = user.email;
@@ -114,15 +95,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.userId as string;
-        session.user.status = token.status as UserStatus;
-        session.user.nickname = token.nickname as string;
-        session.user.roles = token.roles as string[];
-      }
-      return session;
     },
   },
   events: {
