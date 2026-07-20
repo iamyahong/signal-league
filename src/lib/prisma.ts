@@ -16,6 +16,7 @@ export const prisma =
     datasources: {
       db: { url: databaseUrl },
     },
+    transactionOptions: { maxWait: 10000, timeout: 15000 },
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
