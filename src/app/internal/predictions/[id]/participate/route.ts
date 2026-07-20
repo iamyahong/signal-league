@@ -10,7 +10,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id: questionId } = await params;
 
     const body = await req.json();
-    console.log("participate request", session.user.email, body);
 
     // 요청 1: 입력 검증 — 필수 값·형식·허용 범위 확인
     const parsed = participateSchema.safeParse(body);
